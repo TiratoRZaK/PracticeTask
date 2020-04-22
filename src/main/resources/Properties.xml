@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+    <plan>
+        <stage number="1">
+            <speedSending>1</speedSending>
+            <timeLive>60</timeLive>
+        </stage>
+    </plan>
+    <connectionSetting>
+        <typeConnection>tcp</typeConnection>
+        <URL>0.0.0.0:61616</URL>
+        <userName>admin</userName>
+        <password>admin</password>
+    </connectionSetting>
+</settings>
