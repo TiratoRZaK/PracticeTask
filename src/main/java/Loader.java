@@ -4,6 +4,9 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.jms.DeliveryMode;
+import javax.jms.JMSException;
+import javax.jms.Session;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -19,7 +22,6 @@ public class Loader {
         t1.start();
         Thread t2 = new Thread(new Consumer(sender));
         t2.start();
-
     }
 
     private static Properties parseProperties() throws ParserConfigurationException, IOException, SAXException {
@@ -78,9 +80,9 @@ class Producer implements Runnable {
                     sender.produce(message, currentStage);
                     prevTime = message.getStartTime();
                     generatedMessageCount++;
-                }    
+                }
             }
-        } catch (InterruptedException | FileNotFoundException e) {
+        } catch (FileNotFoundException | InterruptedException e) {
             e.printStackTrace();
         }
     }
@@ -95,11 +97,14 @@ class Consumer implements Runnable {
 
     public void run() {
         try {
-            int countMessgage = 1;
-            while (true){
-                countMessgage = sender.consume(countMessgage);
+            MQ.HelloWorldProducer producer = new MQ.HelloWorldProducer(sender.getProperties(), "TEST_QUEUE", DeliveryMode.NON_PERSISTENT, Session.AUTO_ACKNOWLEDGE);
+            int countMessage = 1;
+            while (countMessage<= sender.getProperties().getCountMessagesInAllStages()){
+                countMessage = sender.consume(countMessage, producer);
             }
-        } catch (InterruptedException e) {
+            Thread.sleep(5000);
+            producer.closeConnection();
+        } catch (InterruptedException | JMSException e) {
             e.printStackTrace();
         }
     }

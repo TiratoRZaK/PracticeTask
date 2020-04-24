@@ -2,8 +2,16 @@
 <settings>
     <plan>
         <stage number="1">
-            <speedSending>1</speedSending>
-            <timeLive>60</timeLive>
+            <speedSending>10</speedSending>
+            <timeLive>10</timeLive>
+        </stage>
+        <stage number="2">
+            <speedSending>20</speedSending>
+            <timeLive>10</timeLive>
+        </stage>
+        <stage number="3">
+            <speedSending>30</speedSending>
+            <timeLive>20</timeLive>
         </stage>
     </plan>
     <connectionSetting>

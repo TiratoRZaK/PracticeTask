@@ -19,6 +19,10 @@ public class Message implements Delayed {
         return startTime;
     }
 
+    public String getData(){
+        return data;
+    }
+
     @Override
     public long getDelay(TimeUnit unit) {
         long diff = startTime - System.currentTimeMillis();

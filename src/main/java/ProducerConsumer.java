@@ -14,20 +14,23 @@ public class ProducerConsumer {
     }
 
     synchronized void produce(Message message, Properties.Stage stage) throws InterruptedException {
+
         if(buffer.size() == stage.getCountMessages()){
-            Thread.currentThread().stop();
+            wait();
         }
         buffer.put(message);
-        System.out.println("Сформировано: "+message + "Этап: "+ stage.getNumber());
+        //System.out.println("Сформировано: "+message + "Этап: "+ stage.getNumber());
         notify();
     }
 
-    synchronized int consume(int messageNumber) throws InterruptedException {
-        while(buffer.size() == 0){
+    synchronized int consume(int messageNumber, MQ.HelloWorldProducer producer) throws InterruptedException {
+        while (buffer.size() == 0) {
             wait();
         }
         Message result = buffer.take();
-        System.out.println("Отправлено №" + messageNumber + " в " + System.currentTimeMillis() + ": " + result);
+        //System.out.println("Отправлено №" + messageNumber + " в " + System.currentTimeMillis() + ": " + result);
+
+        MQ.thread(producer, false);
 
         notify();
         return ++messageNumber;
