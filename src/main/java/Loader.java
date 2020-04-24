@@ -70,10 +70,12 @@ class Producer implements Runnable {
 
     public void run() {
         try {
+            System.out.println("Начало генерации: "+System.currentTimeMillis());
+            long prevTime = 0L;
             for (int i = 0; i < sender.getProperties().countStages(); i++){
                 Properties.Stage currentStage = sender.getProperties().getStage(i+1);
                 int generatedMessageCount = 0;
-                long prevTime = 0L;
+                System.out.println((i+1)+" этап начало: "+System.currentTimeMillis());
                 while(generatedMessageCount < currentStage.getCountMessages()) {
                     long delay = (long) (currentStage.getTimeLife()*1000/currentStage.getCountMessages());
                     Message message = new Message(new GeneratorMessage().fileValue("./src/main/resources/Properties.xml"), delay, prevTime);
@@ -82,7 +84,8 @@ class Producer implements Runnable {
                     generatedMessageCount++;
                 }
             }
-        } catch (FileNotFoundException | InterruptedException e) {
+            System.out.println("Конец генерации: "+System.currentTimeMillis());
+        } catch (InterruptedException | FileNotFoundException e) {
             e.printStackTrace();
         }
     }
@@ -99,10 +102,12 @@ class Consumer implements Runnable {
         try {
             MQ.HelloWorldProducer producer = new MQ.HelloWorldProducer(sender.getProperties(), "TEST_QUEUE", DeliveryMode.NON_PERSISTENT, Session.AUTO_ACKNOWLEDGE);
             int countMessage = 1;
+            System.out.println("Начало отправки: "+System.currentTimeMillis());
             while (countMessage<= sender.getProperties().getCountMessagesInAllStages()){
                 countMessage = sender.consume(countMessage, producer);
             }
-            Thread.sleep(5000);
+            System.out.println("Конец отправки: "+System.currentTimeMillis());
+            Thread.sleep(2000);
             producer.closeConnection();
         } catch (InterruptedException | JMSException e) {
             e.printStackTrace();

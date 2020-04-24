@@ -14,7 +14,6 @@ public class ProducerConsumer {
     }
 
     synchronized void produce(Message message, Properties.Stage stage) throws InterruptedException {
-
         if(buffer.size() == stage.getCountMessages()){
             wait();
         }
@@ -30,6 +29,7 @@ public class ProducerConsumer {
         Message result = buffer.take();
         //System.out.println("Отправлено №" + messageNumber + " в " + System.currentTimeMillis() + ": " + result);
 
+        producer.setMessage(result.getData());
         MQ.thread(producer, false);
 
         notify();
