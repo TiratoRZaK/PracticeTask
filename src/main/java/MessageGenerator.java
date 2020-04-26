@@ -1,9 +1,4 @@
-import net.objectlab.kit.datecalc.common.DateCalculator;
-import net.objectlab.kit.datecalc.common.HolidayHandlerType;
-import net.objectlab.kit.datecalc.joda.LocalDateKitCalculatorsFactory;
 import org.apache.commons.io.FileUtils;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalTime;
 import org.mvel2.templates.CompiledTemplate;
 import org.mvel2.templates.TemplateCompiler;
 import org.mvel2.templates.TemplateRuntime;
@@ -14,6 +9,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.time.DayOfWeek;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MessageGenerator
@@ -62,14 +60,16 @@ public class MessageGenerator
     //  Генерация строки, содержащей дату и время в указанном формате с заданным сдвигом в рабочих днях.
     //  Например, если сегодня пятница и сдвиг равен 2м дням, мы должны получить вторник.
     public String dateTime(int addCountDay, String format){
-        DateCalculator<LocalDate> dateCalculator;
-
-        dateCalculator = LocalDateKitCalculatorsFactory.getDefaultInstance()
-                .getDateCalculator("example", HolidayHandlerType.FORWARD);
-        dateCalculator.setStartDate(new LocalDate());
-
-        LocalDate resultDate = dateCalculator.moveByBusinessDays(addCountDay-1).getCurrentBusinessDate();
-        return resultDate.toDateTime(new LocalTime()).toString(format);
+        LocalDateTime resultDateTime = LocalDateTime.now();
+        Integer daysToAdd = addCountDay;
+        while(daysToAdd != 0){
+            resultDateTime = resultDateTime.plusDays(1);
+            if(     resultDateTime.getDayOfWeek() != DayOfWeek.SATURDAY &&
+                    resultDateTime.getDayOfWeek() != DayOfWeek.SUNDAY){
+                daysToAdd--;
+            }
+        }
+        return resultDateTime.format(DateTimeFormatter.ofPattern(format));
     }
 
     //  Выбор случайного значения из текстового файла.
