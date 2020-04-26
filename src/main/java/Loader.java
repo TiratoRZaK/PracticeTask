@@ -1,116 +1,66 @@
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
 import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
 import javax.jms.Session;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.DelayQueue;
 
 public class Loader {
-    public static void main(String[] args) throws ParserConfigurationException, IOException, SAXException {
-        Properties properties = parseProperties();
+    private static String TYPE_CONNECTION;
+    private static String USER_NAME;
+    private static String PASSWORD;
+    private static String URL;
 
-        ProducerConsumer sender = new ProducerConsumer(properties);
-        Thread t1 = new Thread(new Producer(sender));
+    private static Plan PLAN;
+
+    public static void main(String[] args) throws InterruptedException {
+        parseProperties();
+
+        BlockingQueue<Message> blockingQueue = new DelayQueue<Message>();
+        MessageProvider provider = new MessageProvider(blockingQueue, PLAN);
+        Thread t1 = new Thread(provider);
         t1.start();
-        Thread t2 = new Thread(new Consumer(sender));
+        MessageSender sender = new MessageSender(
+                TYPE_CONNECTION,URL,
+                "TEST_QUEUE",
+                DeliveryMode.NON_PERSISTENT,
+                Session.AUTO_ACKNOWLEDGE,
+                blockingQueue,
+                PLAN
+        );
+        try {
+            sender.setConnection();
+        } catch (JMSException e) {
+            System.out.println("Ошибка подключения к MQ. Причина: "+e);;
+        }
+        Thread t2 = new Thread(sender);
         t2.start();
     }
 
-    private static Properties parseProperties() throws ParserConfigurationException, IOException, SAXException {
-        DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        Document document = documentBuilder.parse("./src/main/resources/Properties.xml");
+    private static String getPropertyValue(String propertyName){
+        String propertyValue = "";
 
-        Properties prop;
+        java.util.Properties properties = new Properties();
 
-        Node properties = document.getDocumentElement();
-        NodeList settingsChildNodes = properties.getChildNodes();
-
-        Node settingConnection = settingsChildNodes.item(3);
-        NodeList settings = settingConnection.getChildNodes();
-        prop = new Properties(
-                settings.item(1).getTextContent(),
-                settings.item(3).getTextContent(),
-                settings.item(5).getTextContent(),
-                settings.item(7).getTextContent()
-        );
-
-        Node plan = settingsChildNodes.item(1);
-        NodeList stages = plan.getChildNodes();
-
-        for (int j = 1; j < stages.getLength(); j=j+2) {
-            Node stage = stages.item(j);
-            NodeList attributesStage = stage.getChildNodes();
-            Node countMessages = attributesStage.item(1);
-            Node timeLife = attributesStage.item(3);
-
-            prop.addStage(
-                    stage.getAttributes().getNamedItem("number").getTextContent(),
-                    countMessages.getTextContent(),
-                    timeLife.getTextContent()
-            );
+        try(InputStream inputStream = new FileInputStream("./src/main/resources/Application.properties")){
+            properties.load(inputStream);
+            propertyValue = properties.getProperty(propertyName);
+        }catch (IOException e){
+            System.out.println(e);
         }
-        return prop;
-    }
-}
-
-class Producer implements Runnable {
-    public ProducerConsumer sender;
-
-    public Producer(ProducerConsumer sender) {
-        this.sender = sender;
+        return propertyValue;
     }
 
-    public void run() {
-        try {
-            System.out.println("Начало генерации: "+System.currentTimeMillis());
-            long prevTime = 0L;
-            for (int i = 0; i < sender.getProperties().countStages(); i++){
-                Properties.Stage currentStage = sender.getProperties().getStage(i+1);
-                int generatedMessageCount = 0;
-                System.out.println((i+1)+" этап начало: "+System.currentTimeMillis());
-                while(generatedMessageCount < currentStage.getCountMessages()) {
-                    long delay = (long) (currentStage.getTimeLife()*1000/currentStage.getCountMessages());
-                    Message message = new Message(new GeneratorMessage().fileValue("./src/main/resources/Properties.xml"), delay, prevTime);
-                    sender.produce(message, currentStage);
-                    prevTime = message.getStartTime();
-                    generatedMessageCount++;
-                }
-            }
-            System.out.println("Конец генерации: "+System.currentTimeMillis());
-        } catch (InterruptedException | FileNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-}
+    private static void parseProperties() {
+        TYPE_CONNECTION = getPropertyValue("typeConnection");
+        URL = getPropertyValue("URL");
+        USER_NAME = getPropertyValue("userName");
+        PASSWORD = getPropertyValue("password");
 
-class Consumer implements Runnable {
-    public ProducerConsumer sender;
-
-    public Consumer(ProducerConsumer sender) {
-        this.sender = sender;
-    }
-
-    public void run() {
-        try {
-            MQ.HelloWorldProducer producer = new MQ.HelloWorldProducer(sender.getProperties(), "TEST_QUEUE", DeliveryMode.NON_PERSISTENT, Session.AUTO_ACKNOWLEDGE);
-            int countMessage = 1;
-            System.out.println("Начало отправки: "+System.currentTimeMillis());
-            while (countMessage<= sender.getProperties().getCountMessagesInAllStages()){
-                countMessage = sender.consume(countMessage, producer);
-            }
-            System.out.println("Конец отправки: "+System.currentTimeMillis());
-            Thread.sleep(2000);
-            producer.closeConnection();
-        } catch (InterruptedException | JMSException e) {
-            e.printStackTrace();
-        }
+        String plan = getPropertyValue("plan");
+        PLAN = new Plan(plan);
     }
 }

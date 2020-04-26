@@ -1,24 +1,26 @@
 import java.util.ArrayList;
 import java.util.List;
 
-public class Properties {
-    private String typeConnection;
-    private String URL;
-    private String userName;
-    private String password;
-
+public class Plan {
     private List<Stage> stages;
 
-    public Properties(String typeConnection, String URL, String userName, String password) {
-        this.typeConnection = typeConnection;
-        this.userName = userName;
-        this.password = password;
-        this.URL = URL;
+    public Plan(String plan) {
         this.stages = new ArrayList<>();
+        parsePlan(plan);
     }
 
-    public void addStage(String number, String countMessages, String timeLife){
+    public void addStage(Integer number, String countMessages, String timeLife){
          stages.add(new Stage(number, countMessages, timeLife));
+    }
+
+    private void parsePlan(String plan){
+        String[] stages = plan.split(";");
+        for ( int i = 0; i < stages.length; i++ ) {
+            String[] prop = stages[i].split("/");
+            String countMessages = prop[0];
+            String timeLife = prop[1];
+            addStage((i+1), countMessages, timeLife);
+        }
     }
 
     public Stage getStage(int number){
@@ -26,22 +28,6 @@ public class Properties {
             return stages.get(number-1);
         }
         return null;
-    }
-
-    public String getTypeConnection() {
-        return typeConnection;
-    }
-
-    public String getURL() {
-        return URL;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public String getPassword() {
-        return password;
     }
 
     public List<Stage> getStages() {
@@ -66,8 +52,8 @@ public class Properties {
         private Integer speedSending;
         private Integer timeLife;
 
-        public Stage(String number, String speedSending, String timeLife) {
-            this.number = Integer.parseInt(number);
+        public Stage(Integer number, String speedSending, String timeLife) {
+            this.number = number;
             this.speedSending = Integer.parseInt(speedSending);
             this.timeLife = Integer.parseInt(timeLife);
         }
