@@ -1,5 +1,9 @@
 {
 		“externalTradeId” : “@{uuid()}”,
 		“price” : “@{decimal(1, 999999, 2)}”,
-		“quantity” : “@{integer(1, 1000)}”
+		“quantity” : “@{integer(1, 1000)}”,
+		“instrumentId” : “@{fileValue("./src/main/resources/text.txt")}”,
+		“tututId” : “@{fileValue("./src/main/resources/text.txt")}”,
+		“tradeDateTime” : “@{dateTime(6, "yyyyMMddhhmmssSSS")}”,
+        “settlementDate” : “@{dateTime(2, "yyyyMMdd")}”
 }

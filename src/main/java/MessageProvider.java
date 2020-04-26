@@ -20,6 +20,7 @@ public class MessageProvider implements Runnable{
     public void run() {
         try {
             System.out.println("Начало генерации: "+System.currentTimeMillis());
+            MessageGenerator generator = new MessageGenerator();
             long prevTime = 0L;
             for (int i = 0; i < plan.countStages(); i++){
                 Plan.Stage currentStage = plan.getStage(i+1);
@@ -27,7 +28,7 @@ public class MessageProvider implements Runnable{
                 System.out.println((i+1)+" этап начало: "+System.currentTimeMillis());
                 while(generatedMessageCount < currentStage.getCountMessages()) {
                     long delay = (long) (currentStage.getTimeLife()*1000/currentStage.getCountMessages());
-                    Message message = new Message(new MessageGenerator("./src/main/resources/template.txt").generate(), delay, prevTime);
+                    Message message = new Message(generator.generate(), delay, prevTime);
                     buffer.put(message);
                     System.out.println("Сформировано: "+message + "Этап: "+ currentStage.getNumber());
                     prevTime = message.getStartTime();
@@ -39,6 +40,4 @@ public class MessageProvider implements Runnable{
             e.printStackTrace();
         }
     }
-
-
 }

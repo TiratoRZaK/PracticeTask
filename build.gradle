@@ -19,4 +19,8 @@ dependencies {
     compile group: 'org.apache.activemq', name: 'activemq-core', version: '5.7.0'
     // https://mvnrepository.com/artifact/commons-io/commons-io
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    // https://mvnrepository.com/artifact/net.objectlab.kit.datecalc/datecalc-jdk
+    compile group: 'net.objectlab.kit.datecalc', name: 'datecalc-jdk', version: '1.1.0'
+    // https://mvnrepository.com/artifact/net.objectlab.kit/datecalc-joda
+    compile group: 'net.objectlab.kit', name: 'datecalc-joda', version: '1.2.0'
 }

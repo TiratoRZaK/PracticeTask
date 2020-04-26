@@ -1,4 +1,9 @@
+import net.objectlab.kit.datecalc.common.DateCalculator;
+import net.objectlab.kit.datecalc.common.HolidayHandlerType;
+import net.objectlab.kit.datecalc.joda.LocalDateKitCalculatorsFactory;
 import org.apache.commons.io.FileUtils;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalTime;
 import org.mvel2.templates.CompiledTemplate;
 import org.mvel2.templates.TemplateCompiler;
 import org.mvel2.templates.TemplateRuntime;
@@ -9,8 +14,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MessageGenerator
@@ -18,11 +21,8 @@ public class MessageGenerator
     private Map<String, List<Integer>> usedValue;
     private String template;
 
-    public MessageGenerator(String pathTemplate) {
-        loadTemplate(pathTemplate);
-    }
-
     public MessageGenerator() {
+        loadTemplate("./src/main/resources/template.txt");
     }
 
     private void loadTemplate(String pathTemplate){
@@ -33,12 +33,11 @@ public class MessageGenerator
         }
     }
 
-//  +  Генерация сообщения из файла шаблона. (Непонял откуда берём vars)
     public String generate() {
         usedValue = new HashMap<>();
         Map<String, Object> vars = new HashMap<>();
         CompiledTemplate templ = TemplateCompiler.compileTemplate(template);
-        return TemplateRuntime.execute(templ, new MessageGenerator(), vars).toString();
+        return TemplateRuntime.execute(templ, this, vars).toString();
     }
 
     //  Генерация случайного целого числа в указанном диапазоне (границы входят в диапазон)
@@ -62,11 +61,15 @@ public class MessageGenerator
 
     //  Генерация строки, содержащей дату и время в указанном формате с заданным сдвигом в рабочих днях.
     //  Например, если сегодня пятница и сдвиг равен 2м дням, мы должны получить вторник.
-    public String date(int addCountDay, String format){
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern(format);
-        LocalDateTime now = LocalDateTime.now();
-        //  +Добавление рабочих дней............................................................................
-        return dtf.format(now).toString();
+    public String dateTime(int addCountDay, String format){
+        DateCalculator<LocalDate> dateCalculator;
+
+        dateCalculator = LocalDateKitCalculatorsFactory.getDefaultInstance()
+                .getDateCalculator("example", HolidayHandlerType.FORWARD);
+        dateCalculator.setStartDate(new LocalDate());
+
+        LocalDate resultDate = dateCalculator.moveByBusinessDays(addCountDay-1).getCurrentBusinessDate();
+        return resultDate.toDateTime(new LocalTime()).toString(format);
     }
 
     //  Выбор случайного значения из текстового файла.
@@ -89,6 +92,7 @@ public class MessageGenerator
             list.add(randomValue);
             usedValue.put(path, list);
         }
+
         return values.get(randomValue).trim();
     }
 
@@ -105,17 +109,18 @@ public class MessageGenerator
             System.out.println("Файл не найден");
         }
 
-        List<Integer> usedValues = new ArrayList<>(usedValue.get(path));
-        Integer i = new Random().nextInt(values.size());
-        while (usedValues.contains(i)){
-            i = new Random().nextInt(values.size());
-        }
-        Integer randomValue = i;
-
+        Integer randomValue;
         if(usedValue.containsKey(path)){
+            List<Integer> usedValues = new ArrayList<>(usedValue.get(path));
+            Integer i = new Random().nextInt(values.size());
+            while (usedValues.contains(i)){
+                i = new Random().nextInt(values.size());
+            }
+            randomValue = i;
             usedValue.get(path).add(randomValue);
         }else {
             List<Integer> list = new ArrayList<>();
+            randomValue = new Random().nextInt(values.size());
             list.add(randomValue);
             usedValue.put(path, list);
         }
