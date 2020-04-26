@@ -17,4 +17,6 @@ dependencies {
     compile group: 'org.mvel', name: 'mvel2', version: '2.1.6.Final'
     // https://mvnrepository.com/artifact/org.apache.activemq/activemq-core
     compile group: 'org.apache.activemq', name: 'activemq-core', version: '5.7.0'
+    // https://mvnrepository.com/artifact/commons-io/commons-io
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
 }

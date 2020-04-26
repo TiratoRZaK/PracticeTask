@@ -1,35 +1,44 @@
+import org.apache.commons.io.FileUtils;
+import org.mvel2.templates.CompiledTemplate;
+import org.mvel2.templates.TemplateCompiler;
+import org.mvel2.templates.TemplateRuntime;
+
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class MessageGenerator
 {
-    List<String> selectedValue;
-    StringBuilder message = new StringBuilder();
+    private Map<String, List<Integer>> usedValue;
+    private String template;
 
-    public static void main(String[] args)
-    {
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("A", 1);
-        vars.put("B", 5);
-        List<String> selectedValue = new ArrayList<>();
-
+    public MessageGenerator(String pathTemplate) {
+        loadTemplate(pathTemplate);
     }
-//  +  Генерация сообщения из файла шаблона. (Непонял откуда берём vars)
-    public String generate(String pathTemplate) throws FileNotFoundException {
-        Scanner sc = new Scanner(new File(pathTemplate));
-        while (sc.hasNextLine()) {
-            /*
-            CompiledTemplate template = TemplateCompiler.compileTemplate(sc.nextLine());
 
-            message.append(TemplateRuntime.execute(template, new GeneratorMessage(), vars);
-            */
+    public MessageGenerator() {
+    }
+
+    private void loadTemplate(String pathTemplate){
+        try {
+            template = FileUtils.readFileToString(new File(pathTemplate), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.out.println("Ошибка чтения файла шаблона сообщений. Причина: "+e);
         }
-        return "";
+    }
+
+//  +  Генерация сообщения из файла шаблона. (Непонял откуда берём vars)
+    public String generate() {
+        usedValue = new HashMap<>();
+        Map<String, Object> vars = new HashMap<>();
+        CompiledTemplate templ = TemplateCompiler.compileTemplate(template);
+        return TemplateRuntime.execute(templ, new MessageGenerator(), vars).toString();
     }
 
     //  Генерация случайного целого числа в указанном диапазоне (границы входят в диапазон)
@@ -62,20 +71,54 @@ public class MessageGenerator
 
     //  Выбор случайного значения из текстового файла.
     //  Значения в файле можно записать в одну колонку, каждое на новой строке.
-    public String fileValue(String path) throws FileNotFoundException {
-        Scanner sc = new Scanner(new File(path));
+    public String fileValue(String path) {
         List<String> values = new ArrayList<>();
-        while (sc.hasNextLine()){
-            values.add(sc.nextLine());
+        try (Scanner sc = new Scanner(new File(path))){
+            while (sc.hasNextLine()) {
+                values.add(sc.nextLine());
+            }
+        } catch (FileNotFoundException e){
+            System.out.println("Файл не найден");
         }
-        sc.close();
-        return (values.get(new Random().nextInt(values.size()))).trim();
+        Integer randomValue = new Random().nextInt(values.size());
+
+        if(usedValue.containsKey(path)){
+            usedValue.get(path).add(randomValue);
+        }else {
+            List<Integer> list = new ArrayList<>();
+            list.add(randomValue);
+            usedValue.put(path, list);
+        }
+        return values.get(randomValue).trim();
     }
-// +    Надо разобраться с vars
+
     //  Выбор любого случайного значения из файла кроме тех значений,
     //  которые уже были выбраны из этого файла для текущего сообщения.
     //  С помощью этой функции можно выбирать стороны сделки так, чтобы они были разными.
     public String uniqueFileValue(String path) {
-        return "";
+        List<String> values = new ArrayList<>();
+        try (Scanner sc = new Scanner(new File(path))){
+            while (sc.hasNextLine()) {
+                values.add(sc.nextLine());
+            }
+        } catch (FileNotFoundException e){
+            System.out.println("Файл не найден");
+        }
+
+        List<Integer> usedValues = new ArrayList<>(usedValue.get(path));
+        Integer i = new Random().nextInt(values.size());
+        while (usedValues.contains(i)){
+            i = new Random().nextInt(values.size());
+        }
+        Integer randomValue = i;
+
+        if(usedValue.containsKey(path)){
+            usedValue.get(path).add(randomValue);
+        }else {
+            List<Integer> list = new ArrayList<>();
+            list.add(randomValue);
+            usedValue.put(path, list);
+        }
+        return values.get(randomValue).trim();
     }
 }

@@ -1,0 +1,5 @@
+{
+		“externalTradeId” : “@{uuid()}”,
+		“price” : “@{decimal(1, 999999, 2)}”,
+		“quantity” : “@{integer(1, 1000)}”
+}

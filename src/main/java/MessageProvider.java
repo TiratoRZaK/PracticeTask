@@ -27,7 +27,7 @@ public class MessageProvider implements Runnable{
                 System.out.println((i+1)+" этап начало: "+System.currentTimeMillis());
                 while(generatedMessageCount < currentStage.getCountMessages()) {
                     long delay = (long) (currentStage.getTimeLife()*1000/currentStage.getCountMessages());
-                    Message message = new Message(new MessageGenerator().uuid().toString(), delay, prevTime);
+                    Message message = new Message(new MessageGenerator("./src/main/resources/template.txt").generate(), delay, prevTime);
                     buffer.put(message);
                     System.out.println("Сформировано: "+message + "Этап: "+ currentStage.getNumber());
                     prevTime = message.getStartTime();
