@@ -5,21 +5,16 @@ public class Message implements Delayed {
     private String data;
     private long startTime;
 
-    public Message(String data, long delayInMilliseconds, long prevTime) {
+    public Message(String data, long startTime) {
         this.data = data;
-        if(prevTime == 0L){
-            this.startTime = System.currentTimeMillis() + delayInMilliseconds;
-        }
-        else {
-            this.startTime = prevTime + delayInMilliseconds;
-        }
+        this.startTime = startTime;
     }
 
     public long getStartTime() {
         return startTime;
     }
 
-    public String getData(){
+    public String getData() {
         return data;
     }
 
@@ -31,13 +26,13 @@ public class Message implements Delayed {
 
     @Override
     public int compareTo(Delayed o) {
-        return (int)(this.startTime - ((Message) o).startTime);
+        return (int) (this.startTime - ((Message) o).startTime);
     }
 
     @Override
     public String toString() {
         return "Message {" +
-                data+
+                data +
                 ", startTime=" + startTime +
                 '}';
     }

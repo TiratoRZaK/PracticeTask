@@ -4,28 +4,32 @@ import java.util.List;
 public class Plan {
     private List<Stage> stages;
 
-    public Plan(String plan) {
+    public Plan(String plan) throws LoaderException {
         this.stages = new ArrayList<>();
         parsePlan(plan);
     }
 
-    public void addStage(Integer number, String countMessages, String timeLife){
-         stages.add(new Stage(number, countMessages, timeLife));
+    public void addStage(int number, int countMessages, int timeLife) {
+        stages.add(new Stage(number, countMessages, timeLife));
     }
 
-    private void parsePlan(String plan){
+    private void parsePlan(String plan) throws LoaderException {
         String[] stages = plan.split(";");
-        for ( int i = 0; i < stages.length; i++ ) {
+        for (int i = 0; i < stages.length; i++) {
             String[] prop = stages[i].split("/");
             String countMessages = prop[0];
             String timeLife = prop[1];
-            addStage((i+1), countMessages, timeLife);
+            try {
+                addStage((i + 1), Integer.parseInt(countMessages), Integer.parseInt(timeLife));
+            } catch (NumberFormatException e) {
+                throw new LoaderException("Ошибка чтения плана. Файл Application.properties содержит ошибки.", e);
+            }
         }
     }
 
-    public Stage getStage(int number){
-        if(number <= stages.size()){
-            return stages.get(number-1);
+    public Stage getStage(int number) {
+        if (number <= stages.size()) {
+            return stages.get(number - 1);
         }
         return null;
     }
@@ -34,44 +38,44 @@ public class Plan {
         return stages;
     }
 
-    public Integer getCountMessagesInAllStages(){
+    public int getCountMessagesInAllStages() {
         int summ = 0;
-        for ( int i = 0 ; i< countStages(); i++) {
-            summ += getStage(i+1).getCountMessages();
+        for (int i = 0; i < countStages(); i++) {
+            summ += getStage(i + 1).getCountMessages();
         }
         return summ;
 
     }
 
-    public int countStages(){
+    public int countStages() {
         return stages.size();
     }
 
-    public class Stage{
-        private Integer number;
-        private Integer speedSending;
-        private Integer timeLife;
+    public static class Stage {
+        private int number;
+        private int speedSending;
+        private int timeLife;
 
-        public Stage(Integer number, String speedSending, String timeLife) {
+        public Stage(int number, int speedSending, int timeLife) {
             this.number = number;
-            this.speedSending = Integer.parseInt(speedSending);
-            this.timeLife = Integer.parseInt(timeLife);
+            this.speedSending = speedSending;
+            this.timeLife = timeLife;
         }
 
-        public Integer getSpeedSending() {
+        public int getSpeedSending() {
             return speedSending;
         }
 
-        public Integer getTimeLife() {
+        public int getTimeLife() {
             return timeLife;
         }
 
-        public Integer getNumber(){
+        public int getNumber() {
             return number;
         }
 
-        public Integer getCountMessages(){
-            return getSpeedSending()*getTimeLife();
+        public int getCountMessages() {
+            return getSpeedSending() * getTimeLife();
         }
     }
 }

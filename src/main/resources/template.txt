@@ -2,7 +2,11 @@
 		"externalTradeId" : "@{uuid()}",
 		"price" : "@{decimal(1, 999999, 2)}",
 		"quantity" : "@{integer(1, 1000)}",
-		"instrumentId" : "@{fileValue("./src/main/resources/text.txt")}",
+		"instrumentId" : "@{uniqueFileValue("./src/main/resources/text.txt")}",
+		"tutjutId" : "@{uniqueFileValue("./src/main/resources/text.txt")}",
+		"tututId" : "@{uniqueFileValue("./src/main/resources/text.txt")}",
+		"tututId" : "@{uniqueFileValue("./src/main/resources/text.txt")}",
+		"tututId" : "@{fileValue("./src/main/resources/text.txt")}",
 		"tututId" : "@{fileValue("./src/main/resources/text.txt")}",
 		"tradeDateTime" : "@{dateTime(6, "yyyyMMddhhmmssSSS")}",
         "settlementDate" : "@{dateTime(7, "yyyyMMdd")}"

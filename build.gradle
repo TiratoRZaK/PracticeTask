@@ -19,4 +19,6 @@ dependencies {
     compile group: 'org.apache.activemq', name: 'activemq-core', version: '5.7.0'
     // https://mvnrepository.com/artifact/commons-io/commons-io
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.2'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.2'
 }
