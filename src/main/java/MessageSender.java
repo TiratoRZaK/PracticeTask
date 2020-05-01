@@ -58,11 +58,8 @@ public class MessageSender implements Runnable {
             producer = session.createProducer(destination);
             producer.setDeliveryMode(deliveryMode);
         } catch (JMSException e) {
-            
-            throw new LoaderException("Ошибка установки соединения с MQ.", e);
-
-        }finally {
             closeConnection();
+            throw new LoaderException("Ошибка установки соединения с MQ.", e);
         }
 
     }
@@ -91,7 +88,7 @@ public class MessageSender implements Runnable {
             TextMessage message = session.createTextMessage(textMessage);
             producer.send(message);
         } catch (Exception e) {
-            throw new LoaderException("Ошибка отправки сообщения: \n"+textMessage, e);
+            throw new LoaderException("Ошибка отправки сообщения: \n" + textMessage, e);
         }
     }
 
@@ -100,9 +97,10 @@ public class MessageSender implements Runnable {
         try {
             int numberMessage = 1;
             log.info("Начало отправки: " + System.currentTimeMillis());
-            while (numberMessage <= plan.getCountMessagesInAllStages()) {
+            while (numberMessage <= plan.countMessage) {
                 if (Thread.currentThread().isInterrupted()) {
-                    throw new LoaderException("Поток завершился извне.");
+                    log.error("Поток завершился извне.");
+                    break;
                 }
                 Message result;
                 try {

@@ -13,8 +13,4 @@ public class LoaderException extends Exception {
     public LoaderException(Throwable cause) {
         super(cause);
     }
-
-    public LoaderException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
 }

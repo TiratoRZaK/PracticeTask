@@ -2,7 +2,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ErrorHandler {
-    private static Logger log = LogManager.getLogger(ErrorHandler.class);
+    private static final Logger log = LogManager.getLogger(ErrorHandler.class);
     private final Thread generator;
     private final Thread sender;
 
@@ -12,12 +12,12 @@ public class ErrorHandler {
     }
 
     public void closeGenerator(Throwable cause) {
-        log.error("Вынужденная остановка генерации сообщений.",cause);
+        log.error("Вынужденная остановка генерации сообщений.", cause);
         generator.interrupt();
     }
 
     public void closeSender(Throwable cause) {
-        log.error("Вынужденная остановка отправки сообщений.",cause);
+        log.error("Вынужденная остановка отправки сообщений.", cause);
         sender.interrupt();
     }
 }

@@ -3,9 +3,7 @@ import org.mvel2.templates.CompiledTemplate;
 import org.mvel2.templates.TemplateCompiler;
 import org.mvel2.templates.TemplateRuntime;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,17 +16,17 @@ import java.util.stream.Collectors;
 
 public class MessageGenerator {
     private Map<String, List<String>> usedValues;
-    private Map<String, List<String>> usedFiles;
     private String template;
+    private final Map<String, List<String>> files;
 
-    public MessageGenerator() throws LoaderException {
-        loadTemplate("./src/main/resources/template.txt");
-        usedFiles = new HashMap<>();
+    public MessageGenerator(Map<String, List<String>> files) throws LoaderException {
+        loadTemplate();
+        this.files = files;
     }
 
-    private void loadTemplate(String pathTemplate) throws LoaderException {
+    private void loadTemplate() throws LoaderException {
         try {
-            template = FileUtils.readFileToString(new File(pathTemplate), StandardCharsets.UTF_8);
+            template = FileUtils.readFileToString(new File("./configs/template.txt"), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new LoaderException("Ошибка чтения файла шаблона сообщений.", e);
         }
@@ -64,7 +62,7 @@ public class MessageGenerator {
     //  Например, если сегодня пятница и сдвиг равен 2м дням, мы должны получить вторник.
     public String dateTime(int addCountDay, String format) {
         LocalDateTime resultDateTime = LocalDateTime.now();
-        Integer daysToAdd = addCountDay;
+        int daysToAdd = addCountDay;
         while (daysToAdd != 0) {
             resultDateTime = resultDateTime.plusDays(1);
             if (resultDateTime.getDayOfWeek() != DayOfWeek.SATURDAY &&
@@ -77,29 +75,16 @@ public class MessageGenerator {
 
     //  Выбор случайного значения из текстового файла.
     //  Значения в файле можно записать в одну колонку, каждое на новой строке.
-    public String fileValue(String path) throws LoaderException {
-        List<String> values = new ArrayList<>();
-        if (!usedFiles.containsKey(path)) {
-            try (BufferedReader br = new BufferedReader(new FileReader(new File(path)))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    values.add(line);
-                }
-            } catch (IOException e) {
-                throw new LoaderException("Ошибка чтения файла.", e);
-            }
-            usedFiles.put(path, values);
-        } else {
-            values = usedFiles.get(path);
-        }
-        Integer randomValue = new Random().nextInt(values.size());
+    public String fileValue(String fileName) {
+        List<String> values = files.get(fileName);
+        int randomValue = new Random().nextInt(values.size());
 
-        if (usedValues.containsKey(path)) {
-            usedValues.get(path).add(values.get(randomValue));
+        if (usedValues.containsKey(fileName)) {
+            usedValues.get(fileName).add(values.get(randomValue));
         } else {
             List<String> list = new ArrayList<>();
             list.add(values.get(randomValue));
-            usedValues.put(path, list);
+            usedValues.put(fileName, list);
         }
         return values.get(randomValue);
     }
@@ -107,26 +92,11 @@ public class MessageGenerator {
     //  Выбор любого случайного значения из файла кроме тех значений,
     //  которые уже были выбраны из этого файла для текущего сообщения.
     //  С помощью этой функции можно выбирать стороны сделки так, чтобы они были разными.
-    public String uniqueFileValue(String path) throws Exception {
-        List<String> values = new ArrayList<>();
-        if (!usedFiles.containsKey(path)) {
-            try (BufferedReader br = new BufferedReader(new FileReader(new File(path)))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    values.add(line);
-                }
-            } catch (IOException e) {
-                throw new LoaderException("Ошибка чтения файла.", e);
-            }
-            usedFiles.put(path, values);
-        } else {
-            values = usedFiles.get(path);
-        }
-
+    public String uniqueFileValue(String fileName) throws Exception {
+        List<String> values = files.get(fileName);
         String selectedRandomValue;
-        if (usedValues.containsKey(path)) {
-            List<String> usedValues = new ArrayList<>(this.usedValues.get(path));
-
+        if (usedValues.containsKey(fileName)) {
+            List<String> usedValues = new ArrayList<>(this.usedValues.get(fileName));
             List<String> uniqueValues = values.stream().filter(e -> !usedValues.contains(e)).collect(Collectors.toList());
 
             if (uniqueValues.size() == 0) {
@@ -136,13 +106,13 @@ public class MessageGenerator {
 
             int randomValue = new Random().nextInt(uniqueValues.size());
             selectedRandomValue = uniqueValues.get(randomValue);
-            this.usedValues.get(path).add(selectedRandomValue);
+            this.usedValues.get(fileName).add(selectedRandomValue);
         } else {
             List<String> list = new ArrayList<>();
             int randomValue = new Random().nextInt(values.size());
             selectedRandomValue = values.get(randomValue);
             list.add(selectedRandomValue);
-            usedValues.put(path, list);
+            usedValues.put(fileName, list);
         }
         return selectedRandomValue;
     }

@@ -1,12 +1,11 @@
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.jms.DeliveryMode;
 import javax.jms.Session;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import java.io.*;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 
@@ -14,21 +13,21 @@ public class Loader {
     private static final Logger log = LogManager.getLogger(Loader.class);
     private static ErrorHandler errorHandler;
     private static String TYPE_CONNECTION;
-    private static String USER_NAME;
-    private static String PASSWORD;
     private static String URL;
+    private static final Map<String, List<String>> FILES = new HashMap<>();
 
     private static Plan PLAN;
 
     public static void main(String[] args) {
         try {
             parseProperties();
+            loadFiles();
         } catch (LoaderException e) {
             log.error(e);
             return;
         }
-        BlockingQueue<Message> blockingQueue = new DelayQueue<Message>();
-        MessageProvider provider = new MessageProvider(blockingQueue, PLAN);
+        BlockingQueue<Message> blockingQueue = new DelayQueue<>();
+        MessageProvider provider = new MessageProvider(blockingQueue, PLAN, FILES);
         Thread t1 = new Thread(provider);
         MessageSender sender = new MessageSender(
                 TYPE_CONNECTION, URL,
@@ -53,15 +52,32 @@ public class Loader {
 
     }
 
+    private static void loadFiles() throws LoaderException {
+        File[] files = new File("./configs/files/").listFiles();
+        if (files != null) {
+            for (File file : files) {
+                String name = FilenameUtils.getBaseName(file.getName());
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    List<String> lines = new ArrayList<>();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        lines.add(line);
+                    }
+                    FILES.put(name, lines);
+                } catch (IOException e) {
+                    throw new LoaderException("Ошибка чтения файла: " + file.getPath(), e);
+                }
+            }
+        }
+    }
+
     private static void parseProperties() throws LoaderException {
         Properties properties = new Properties();
 
-        try (InputStream inputStream = new FileInputStream("./src/main/resources/Application.properties")) {
+        try (InputStream inputStream = new FileInputStream("./configs/Application.properties")) {
             properties.load(inputStream);
             TYPE_CONNECTION = properties.getProperty("typeConnection");
             URL = properties.getProperty("URL");
-            USER_NAME = properties.getProperty("userName");
-            PASSWORD = properties.getProperty("password");
 
             String plan = properties.getProperty("plan");
             PLAN = new Plan(plan);

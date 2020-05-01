@@ -2,11 +2,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Plan {
-    private List<Stage> stages;
+    private final List<Stage> stages;
+    public final int countMessage;
 
     public Plan(String plan) throws LoaderException {
         this.stages = new ArrayList<>();
         parsePlan(plan);
+        countMessage = getCountMessagesInAllStages();
     }
 
     public void addStage(int number, int countMessages, int timeLife) {
@@ -22,7 +24,7 @@ public class Plan {
             try {
                 addStage((i + 1), Integer.parseInt(countMessages), Integer.parseInt(timeLife));
             } catch (NumberFormatException e) {
-                throw new LoaderException("Ошибка чтения плана. Файл Application.properties содержит ошибки.", e);
+                throw new LoaderException("Ошибка чтения плана. Синтаксическая ошибка в скорости или времени отправки сообщений.", e);
             }
         }
     }
@@ -34,11 +36,7 @@ public class Plan {
         return null;
     }
 
-    public List<Stage> getStages() {
-        return stages;
-    }
-
-    public int getCountMessagesInAllStages() {
+    private int getCountMessagesInAllStages() {
         int summ = 0;
         for (int i = 0; i < countStages(); i++) {
             summ += getStage(i + 1).getCountMessages();
@@ -52,14 +50,16 @@ public class Plan {
     }
 
     public static class Stage {
-        private int number;
-        private int speedSending;
-        private int timeLife;
+        private final int number;
+        private final int speedSending;
+        private final int timeLife;
+        public final int countMessage;
 
         public Stage(int number, int speedSending, int timeLife) {
             this.number = number;
             this.speedSending = speedSending;
             this.timeLife = timeLife;
+            countMessage = getCountMessages();
         }
 
         public int getSpeedSending() {
@@ -74,7 +74,7 @@ public class Plan {
             return number;
         }
 
-        public int getCountMessages() {
+        private int getCountMessages() {
             return getSpeedSending() * getTimeLife();
         }
     }

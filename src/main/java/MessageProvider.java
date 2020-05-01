@@ -1,6 +1,8 @@
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -11,13 +13,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class MessageProvider implements Runnable {
     private static final Logger log = LogManager.getLogger(MessageProvider.class);
-    private BlockingQueue<Message> buffer;
-    private Plan plan;
+    private final BlockingQueue<Message> buffer;
+    private final Plan plan;
     private ErrorHandler errorHandler;
+    private final Map<String, List<String>> files;
 
-    public MessageProvider(BlockingQueue<Message> buffer, Plan plan) {
+    public MessageProvider(BlockingQueue<Message> buffer, Plan plan, Map<String, List<String>> files) {
         this.buffer = buffer;
         this.plan = plan;
+        this.files = files;
     }
 
     public void setErrorHandler(ErrorHandler errorHandler) {
@@ -27,18 +31,19 @@ public class MessageProvider implements Runnable {
     @Override
     public void run() {
         try {
-            MessageGenerator generator = new MessageGenerator();
+            MessageGenerator generator = new MessageGenerator(files);
             long prevTime = 0L;
             log.info("Начало генерации: " + System.currentTimeMillis());
             for (int i = 0; i < plan.countStages(); i++) {
                 Plan.Stage currentStage = plan.getStage(i + 1);
                 int generatedMessageCount = 0;
                 log.info((i + 1) + " этап начало: " + System.currentTimeMillis());
-                while (generatedMessageCount < currentStage.getCountMessages()) {
+                while (generatedMessageCount < currentStage.countMessage) {
                     if (Thread.currentThread().isInterrupted()) {
-                        throw new LoaderException("Поток завершился извне.");
+                        log.error("Поток завершился извне.");
+                        break;
                     }
-                    long delay = TimeUnit.SECONDS.toMillis(currentStage.getTimeLife()) / currentStage.getCountMessages();
+                    long delay = TimeUnit.SECONDS.toMillis(currentStage.getTimeLife()) / currentStage.countMessage;
                     Message message;
                     long startTime;
                     if (prevTime == 0L) {
@@ -57,7 +62,7 @@ public class MessageProvider implements Runnable {
                     }
                 }
             }
-        } catch ( LoaderException e) {
+        } catch (LoaderException e) {
             errorHandler.closeSender(e);
         }
         log.info("Конец генерации: " + System.currentTimeMillis());

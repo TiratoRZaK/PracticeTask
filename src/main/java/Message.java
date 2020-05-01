@@ -2,8 +2,8 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
 public class Message implements Delayed {
-    private String data;
-    private long startTime;
+    private final String data;
+    private final long startTime;
 
     public Message(String data, long startTime) {
         this.data = data;
