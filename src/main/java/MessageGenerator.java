@@ -26,7 +26,7 @@ public class MessageGenerator {
 
     private void loadTemplate() throws LoaderException {
         try {
-            template = FileUtils.readFileToString(new File("./configs/template.txt"), StandardCharsets.UTF_8);
+            template = FileUtils.readFileToString(new File("configs/template.txt"), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new LoaderException("Ошибка чтения файла шаблона сообщений.", e);
         }

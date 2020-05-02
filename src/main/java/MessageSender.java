@@ -21,12 +21,24 @@ public class MessageSender implements Runnable {
     private final Plan plan;
     private ErrorHandler errorHandler;
 
+    public void setCountMessages(int countMessages) {
+        this.countMessages = countMessages;
+    }
+
+    private int countMessages;
+
     private final String brokerUrl;
     private final String queueName;
     private final int deliveryMode;
     private final int sessionMode;
 
-    public MessageSender(String typeConnection, String url, String queueName, int deliveryMode, int sessionMode, BlockingQueue<Message> buffer, Plan plan) {
+    public MessageSender(String typeConnection,
+                         String url,
+                         String queueName,
+                         int deliveryMode,
+                         int sessionMode,
+                         BlockingQueue<Message> buffer,
+                         Plan plan) {
         this.buffer = buffer;
         this.queueName = queueName;
         this.deliveryMode = deliveryMode;
@@ -97,7 +109,7 @@ public class MessageSender implements Runnable {
         try {
             int numberMessage = 1;
             log.info("Начало отправки: " + System.currentTimeMillis());
-            while (numberMessage <= plan.countMessage) {
+            while (numberMessage <= countMessages) {
                 if (Thread.currentThread().isInterrupted()) {
                     log.error("Поток завершился извне.");
                     break;
@@ -105,8 +117,10 @@ public class MessageSender implements Runnable {
                 Message result;
                 try {
                     result = buffer.take();
-                } catch (InterruptedException ex) {
-                    throw new LoaderException("Ошибка получения сообщения из очереди.", ex);
+                } catch (InterruptedException e) {
+                    log.error("Ошибка получения из очереди сообщения.\n "+ e.getMessage());
+                    Thread.currentThread().interrupt();
+                    break;
                 }
                 log.info("Отправлено №" + numberMessage + " в " + System.currentTimeMillis() + ": " + result);
                 sendMessage(result.getData());

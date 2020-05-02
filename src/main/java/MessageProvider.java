@@ -38,12 +38,12 @@ public class MessageProvider implements Runnable {
                 Plan.Stage currentStage = plan.getStage(i + 1);
                 int generatedMessageCount = 0;
                 log.info((i + 1) + " этап начало: " + System.currentTimeMillis());
-                while (generatedMessageCount < currentStage.countMessage) {
+                while (generatedMessageCount < currentStage.getCountMessages()) {
                     if (Thread.currentThread().isInterrupted()) {
                         log.error("Поток завершился извне.");
                         break;
                     }
-                    long delay = TimeUnit.SECONDS.toMillis(currentStage.getTimeLife()) / currentStage.countMessage;
+                    long delay = TimeUnit.SECONDS.toMillis(currentStage.getTimeLife()) / currentStage.getCountMessages();
                     Message message;
                     long startTime;
                     if (prevTime == 0L) {
@@ -57,13 +57,16 @@ public class MessageProvider implements Runnable {
                     generatedMessageCount++;
                     try {
                         buffer.put(message);
-                    } catch (InterruptedException ex) {
-                        throw new LoaderException("Ошибка добавления сообщения в очередь.", ex);
+                    } catch (InterruptedException e) {
+                        log.error("Ошибка добавления в очередь сообщения: "+message+"\n"
+                                + e.getMessage());
+                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
             }
         } catch (LoaderException e) {
-            errorHandler.closeSender(e);
+            errorHandler.closeSenders(e);
         }
         log.info("Конец генерации: " + System.currentTimeMillis());
     }

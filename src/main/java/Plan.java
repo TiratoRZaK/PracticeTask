@@ -3,15 +3,25 @@ import java.util.List;
 
 public class Plan {
     private final List<Stage> stages;
-    public final int countMessage;
+    private final int countMessages;
 
     public Plan(String plan) throws LoaderException {
         this.stages = new ArrayList<>();
         parsePlan(plan);
-        countMessage = getCountMessagesInAllStages();
+        int sum = 0;
+        for (int i = 0; i < countStages(); i++) {
+            sum += getStage(i + 1).getCountMessages();
+        }
+        countMessages = sum;
     }
 
-    public void addStage(int number, int countMessages, int timeLife) {
+    public void addStage(int number, int countMessages, int timeLife) throws LoaderException {
+        if(countMessages <= 0){
+            throw new LoaderException("Количество сообщений на этапе №"+number+" должно быть больше 0.");
+        }
+        if(timeLife <= 0){
+            throw new LoaderException("Время отправки на этапе №"+number+" должно быть больше 0.");
+        }
         stages.add(new Stage(number, countMessages, timeLife));
     }
 
@@ -36,12 +46,8 @@ public class Plan {
         return null;
     }
 
-    private int getCountMessagesInAllStages() {
-        int summ = 0;
-        for (int i = 0; i < countStages(); i++) {
-            summ += getStage(i + 1).getCountMessages();
-        }
-        return summ;
+    public int getCountMessages() {
+        return countMessages;
 
     }
 
@@ -53,13 +59,13 @@ public class Plan {
         private final int number;
         private final int speedSending;
         private final int timeLife;
-        public final int countMessage;
+        private final int countMessages;
 
         public Stage(int number, int speedSending, int timeLife) {
             this.number = number;
             this.speedSending = speedSending;
             this.timeLife = timeLife;
-            countMessage = getCountMessages();
+            countMessages = getSpeedSending() * getTimeLife();
         }
 
         public int getSpeedSending() {
@@ -74,8 +80,8 @@ public class Plan {
             return number;
         }
 
-        private int getCountMessages() {
-            return getSpeedSending() * getTimeLife();
+        public int getCountMessages() {
+            return countMessages;
         }
     }
 }

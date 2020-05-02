@@ -11,6 +11,7 @@ import java.util.concurrent.DelayQueue;
 
 public class Loader {
     private static final Logger log = LogManager.getLogger(Loader.class);
+    private static int COUNT_SENDERS;
     private static ErrorHandler errorHandler;
     private static String TYPE_CONNECTION;
     private static String URL;
@@ -29,31 +30,61 @@ public class Loader {
         BlockingQueue<Message> blockingQueue = new DelayQueue<>();
         MessageProvider provider = new MessageProvider(blockingQueue, PLAN, FILES);
         Thread t1 = new Thread(provider);
-        MessageSender sender = new MessageSender(
-                TYPE_CONNECTION, URL,
-                "TEST_QUEUE",
-                DeliveryMode.NON_PERSISTENT,
-                Session.AUTO_ACKNOWLEDGE,
-                blockingQueue,
-                PLAN
-        );
-        try {
-            sender.setConnection();
-        } catch (LoaderException e) {
-            log.error("Ошибка подключения к MQ.", e);
-            return;
-        }
-        Thread t2 = new Thread(sender);
-        errorHandler = new ErrorHandler(t1, t2);
-        provider.setErrorHandler(errorHandler);
-        sender.setErrorHandler(errorHandler);
-        t1.start();
-        t2.start();
 
+        List<MessageSender> senders = new ArrayList<>();
+        List<Thread> sendThreads = new ArrayList<>();
+        for (int i = 0; i < COUNT_SENDERS; i++) {
+            MessageSender sender = new MessageSender(
+                    TYPE_CONNECTION, URL,
+                    "TEST_QUEUE",
+                    DeliveryMode.NON_PERSISTENT,
+                    Session.AUTO_ACKNOWLEDGE,
+                    blockingQueue,
+                    PLAN
+            );
+            try {
+                sender.setConnection();
+            } catch (LoaderException e) {
+                log.error("Ошибка подключения к MQ.", e);
+                return;
+            }
+            senders.add(sender);
+            sendThreads.add(new Thread(sender));
+        }
+        calculateCountMessages(senders);
+
+        errorHandler = new ErrorHandler(t1, sendThreads);
+        provider.setErrorHandler(errorHandler);
+        t1.start();
+        for (MessageSender sender : senders) {
+            sender.setErrorHandler(errorHandler);
+        }
+        for (Thread sendThread : sendThreads) {
+            sendThread.start();
+        }
+    }
+
+    private static void calculateCountMessages(List<MessageSender> senders) {
+        if (PLAN.getCountMessages() % COUNT_SENDERS == 0) {
+            for (MessageSender sender : senders) {
+                sender.setCountMessages(PLAN.getCountMessages() / COUNT_SENDERS);
+            }
+        } else {
+            int countMessages = PLAN.getCountMessages();
+            int equalShare = PLAN.getCountMessages() / COUNT_SENDERS;
+            int modulo = PLAN.getCountMessages() % COUNT_SENDERS;
+            int i = 0;
+            while (countMessages > equalShare + modulo) {
+                countMessages = countMessages - equalShare;
+                senders.get(i).setCountMessages(equalShare);
+                i++;
+            }
+            senders.get(i).setCountMessages(equalShare + modulo);
+        }
     }
 
     private static void loadFiles() throws LoaderException {
-        File[] files = new File("./configs/files/").listFiles();
+        File[] files = new File("configs/files/").listFiles();
         if (files != null) {
             for (File file : files) {
                 String name = FilenameUtils.getBaseName(file.getName());
@@ -74,14 +105,19 @@ public class Loader {
     private static void parseProperties() throws LoaderException {
         Properties properties = new Properties();
 
-        try (InputStream inputStream = new FileInputStream("./configs/Application.properties")) {
+        try (InputStream inputStream = new FileInputStream("configs/Application.properties")) {
             properties.load(inputStream);
             TYPE_CONNECTION = properties.getProperty("typeConnection");
             URL = properties.getProperty("URL");
-
+            int countSenders = Integer.parseInt(properties.getProperty("countSenders"));
+            if (countSenders < 1) {
+                throw new LoaderException("Количество потоков отправителей не может быть меньшне единицы.");
+            }
+            COUNT_SENDERS = countSenders;
             String plan = properties.getProperty("plan");
+
             PLAN = new Plan(plan);
-        } catch (IOException e) {
+        } catch (IOException | NumberFormatException e) {
             throw new LoaderException("Ошибка чтения файла свойств.", e);
         }
     }
