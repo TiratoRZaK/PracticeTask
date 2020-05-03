@@ -10,16 +10,20 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 
 public class Loader {
-    private static final Logger log = LogManager.getLogger(Loader.class);
-    private static int COUNT_SENDERS;
-    private static ErrorHandler errorHandler;
-    private static String TYPE_CONNECTION;
-    private static String URL;
-    private static final Map<String, List<String>> FILES = new HashMap<>();
-
-    private static Plan PLAN;
+    private final Logger log = LogManager.getLogger(Loader.class);
+    private int COUNT_SENDERS;
+    private ErrorHandler errorHandler;
+    private String TYPE_CONNECTION;
+    private String URL;
+    private final Map<String, List<String>> FILES = new HashMap<>();
+    private Plan PLAN;
 
     public static void main(String[] args) {
+        Loader loader = new Loader();
+        loader.startLoader();
+    }
+
+    public void startLoader() {
         try {
             parseProperties();
             loadFiles();
@@ -31,29 +35,29 @@ public class Loader {
         MessageProvider provider = new MessageProvider(blockingQueue, PLAN, FILES);
         Thread t1 = new Thread(provider);
 
+        StatisticsWriter statisticsWriter = new StatisticsWriter(PLAN);
+
         List<MessageSender> senders = new ArrayList<>();
         List<Thread> sendThreads = new ArrayList<>();
+
         for (int i = 0; i < COUNT_SENDERS; i++) {
             MessageSender sender = new MessageSender(
                     TYPE_CONNECTION, URL,
                     "TEST_QUEUE",
                     DeliveryMode.NON_PERSISTENT,
                     Session.AUTO_ACKNOWLEDGE,
-                    blockingQueue
+                    blockingQueue,
+                    statisticsWriter
             );
             try {
                 sender.setConnection();
             } catch (LoaderException e) {
                 log.error("Ошибка подключения к MQ.", e);
-                return;
+                break;
             }
             senders.add(sender);
             sendThreads.add(new Thread(sender));
         }
-        calculateCountMessages(senders);
-
-        StatisticModule statisticModule = new StatisticModule(senders);
-        new Thread(statisticModule).start();
 
         errorHandler = new ErrorHandler(t1, sendThreads);
         provider.setErrorHandler(errorHandler);
@@ -64,28 +68,10 @@ public class Loader {
         for (Thread sendThread : sendThreads) {
             sendThread.start();
         }
+        new Thread(statisticsWriter).start();
     }
 
-    private static void calculateCountMessages(List<MessageSender> senders) {
-        if (PLAN.getCountMessages() % COUNT_SENDERS == 0) {
-            for (MessageSender sender : senders) {
-                sender.setCountMessages(PLAN.getCountMessages() / COUNT_SENDERS);
-            }
-        } else {
-            int countMessages = PLAN.getCountMessages();
-            int equalShare = PLAN.getCountMessages() / COUNT_SENDERS;
-            int modulo = PLAN.getCountMessages() % COUNT_SENDERS;
-            int i = 0;
-            while (countMessages > equalShare + modulo) {
-                countMessages = countMessages - equalShare;
-                senders.get(i).setCountMessages(equalShare);
-                i++;
-            }
-            senders.get(i).setCountMessages(equalShare + modulo);
-        }
-    }
-
-    private static void loadFiles() throws LoaderException {
+    private void loadFiles() throws LoaderException {
         File[] files = new File("configs/files/").listFiles();
         if (files != null) {
             for (File file : files) {
@@ -104,7 +90,7 @@ public class Loader {
         }
     }
 
-    private static void parseProperties() throws LoaderException {
+    private void parseProperties() throws LoaderException {
         Properties properties = new Properties();
 
         try (InputStream inputStream = new FileInputStream("configs/Application.properties")) {

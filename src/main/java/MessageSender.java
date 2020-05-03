@@ -4,7 +4,6 @@ import org.apache.logging.log4j.Logger;
 
 import javax.jms.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /*
  * Его задачи:
@@ -20,22 +19,7 @@ public class MessageSender implements Runnable {
     private MessageProducer producer;
     private final BlockingQueue<Message> buffer;
     private ErrorHandler errorHandler;
-    private boolean completedSending = false;
-    private AtomicInteger countSentMessages = new AtomicInteger(0);
-
-    public boolean isCompletedSending() {
-        return completedSending;
-    }
-
-    public int getCountSentMessages() {
-        return countSentMessages.get();
-    }
-
-    public void setCountMessages(int countMessages) {
-        this.countMessages = countMessages;
-    }
-
-    private int countMessages;
+    private final StatisticsWriter statisticsWriter;
 
     private final String brokerUrl;
     private final String queueName;
@@ -47,11 +31,13 @@ public class MessageSender implements Runnable {
                          String queueName,
                          int deliveryMode,
                          int sessionMode,
-                         BlockingQueue<Message> buffer) {
+                         BlockingQueue<Message> buffer,
+                         StatisticsWriter statisticsWriter) {
         this.buffer = buffer;
         this.queueName = queueName;
         this.deliveryMode = deliveryMode;
         this.sessionMode = sessionMode;
+        this.statisticsWriter = statisticsWriter;
         this.brokerUrl = typeConnection + "://" + url;
     }
 
@@ -107,7 +93,7 @@ public class MessageSender implements Runnable {
         try {
             TextMessage message = session.createTextMessage(textMessage);
             producer.send(message);
-            countSentMessages.incrementAndGet();
+            statisticsWriter.addSentMessage();
         } catch (Exception e) {
             throw new LoaderException("Ошибка отправки сообщения: \n" + textMessage, e);
         }
@@ -118,28 +104,24 @@ public class MessageSender implements Runnable {
         try {
             int numberMessage = 1;
             log.debug("Начало отправки: " + System.currentTimeMillis());
-            while (numberMessage <= countMessages) {
+            Message result;
+            Thread.sleep(1000);
+            while (!statisticsWriter.isCompletedSent()) {
                 if (Thread.currentThread().isInterrupted()) {
                     log.error("Поток завершился извне.");
                     break;
                 }
-                Message result;
-                try {
-                    result = buffer.take();
-                } catch (InterruptedException e) {
-                    log.error("Ошибка получения из очереди сообщения.\n "+ e.getMessage());
-                    Thread.currentThread().interrupt();
-                    break;
+
+                if ((result = buffer.poll()) != null) {
+                    log.debug("Отправлено №" + numberMessage + " в " + System.currentTimeMillis() + ": " + result);
+                    sendMessage(result.getData());
+                    numberMessage++;
                 }
-                log.debug("Отправлено №" + numberMessage + " в " + System.currentTimeMillis() + ": " + result);
-                sendMessage(result.getData());
-                numberMessage++;
             }
             log.debug("Конец отправки: " + System.currentTimeMillis());
-        } catch (LoaderException e) {
+        } catch (LoaderException | InterruptedException e) {
             errorHandler.closeGenerator(e);
         } finally {
-            completedSending = true;
             closeConnection();
         }
     }

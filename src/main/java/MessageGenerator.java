@@ -92,14 +92,14 @@ public class MessageGenerator {
     //  Выбор любого случайного значения из файла кроме тех значений,
     //  которые уже были выбраны из этого файла для текущего сообщения.
     //  С помощью этой функции можно выбирать стороны сделки так, чтобы они были разными.
-    public String uniqueFileValue(String fileName) throws Exception {
+    public String uniqueFileValue(String fileName) throws LoaderException {
         List<String> values = files.get(fileName);
         String selectedRandomValue;
         if (usedValues.containsKey(fileName)) {
-            List<String> usedValues = new ArrayList<>(this.usedValues.get(fileName));
+            List<String> usedValues = new LinkedList<>(this.usedValues.get(fileName));
             List<String> uniqueValues = values.stream().filter(e -> !usedValues.contains(e)).collect(Collectors.toList());
 
-            if (uniqueValues.size() == 0) {
+            if (uniqueValues.isEmpty()) {
                 throw new LoaderException("Ошибка формирования сообщения. Причина: " +
                         "Запрашивается больше уникальных значений, чем есть в файле!");
             }

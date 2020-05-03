@@ -20,7 +20,7 @@ public class ErrorHandler {
 
     public void closeSenders(Throwable cause) {
         log.error("Вынужденная остановка отправки сообщений.", cause);
-        for (Thread sender:senders) {
+        for (Thread sender : senders) {
             sender.interrupt();
         }
     }

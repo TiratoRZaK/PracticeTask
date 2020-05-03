@@ -16,11 +16,11 @@ public class Plan {
     }
 
     public void addStage(int number, int countMessages, int timeLife) throws LoaderException {
-        if(countMessages <= 0){
-            throw new LoaderException("Количество сообщений на этапе №"+number+" должно быть больше 0.");
+        if (countMessages <= 0) {
+            throw new LoaderException("Количество сообщений на этапе №" + number + " должно быть больше 0.");
         }
-        if(timeLife <= 0){
-            throw new LoaderException("Время отправки на этапе №"+number+" должно быть больше 0.");
+        if (timeLife <= 0) {
+            throw new LoaderException("Время отправки на этапе №" + number + " должно быть больше 0.");
         }
         stages.add(new Stage(number, countMessages, timeLife));
     }

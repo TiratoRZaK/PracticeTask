@@ -58,7 +58,7 @@ public class MessageProvider implements Runnable {
                     try {
                         buffer.put(message);
                     } catch (InterruptedException e) {
-                        log.error("Ошибка добавления в очередь сообщения: "+message+"\n"
+                        log.error("Ошибка добавления в очередь сообщения: " + message + "\n"
                                 + e.getMessage());
                         Thread.currentThread().interrupt();
                         break;
