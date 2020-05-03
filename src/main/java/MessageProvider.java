@@ -33,11 +33,11 @@ public class MessageProvider implements Runnable {
         try {
             MessageGenerator generator = new MessageGenerator(files);
             long prevTime = 0L;
-            log.info("Начало генерации: " + System.currentTimeMillis());
+            log.debug("Начало генерации: " + System.currentTimeMillis());
             for (int i = 0; i < plan.countStages(); i++) {
                 Plan.Stage currentStage = plan.getStage(i + 1);
                 int generatedMessageCount = 0;
-                log.info((i + 1) + " этап начало: " + System.currentTimeMillis());
+                log.debug((i + 1) + " этап начало: " + System.currentTimeMillis());
                 while (generatedMessageCount < currentStage.getCountMessages()) {
                     if (Thread.currentThread().isInterrupted()) {
                         log.error("Поток завершился извне.");
@@ -52,7 +52,7 @@ public class MessageProvider implements Runnable {
                         startTime = prevTime + delay;
                     }
                     message = new Message(generator.generate(), startTime);
-                    log.info("Сформировано: " + message + "Этап: " + currentStage.getNumber());
+                    log.debug("Сформировано: " + message + "Этап: " + currentStage.getNumber());
                     prevTime = message.getStartTime();
                     generatedMessageCount++;
                     try {
@@ -68,6 +68,6 @@ public class MessageProvider implements Runnable {
         } catch (LoaderException e) {
             errorHandler.closeSenders(e);
         }
-        log.info("Конец генерации: " + System.currentTimeMillis());
+        log.debug("Конец генерации: " + System.currentTimeMillis());
     }
 }

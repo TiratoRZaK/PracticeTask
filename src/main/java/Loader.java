@@ -39,8 +39,7 @@ public class Loader {
                     "TEST_QUEUE",
                     DeliveryMode.NON_PERSISTENT,
                     Session.AUTO_ACKNOWLEDGE,
-                    blockingQueue,
-                    PLAN
+                    blockingQueue
             );
             try {
                 sender.setConnection();
@@ -52,6 +51,9 @@ public class Loader {
             sendThreads.add(new Thread(sender));
         }
         calculateCountMessages(senders);
+
+        StatisticModule statisticModule = new StatisticModule(senders);
+        new Thread(statisticModule).start();
 
         errorHandler = new ErrorHandler(t1, sendThreads);
         provider.setErrorHandler(errorHandler);

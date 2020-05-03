@@ -5,15 +5,20 @@
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
 
-        <File name="MyFile" fileName="logs/app.log">
+        <File name="MyStatistics" fileName="logs/statistics.log">
+            <PatternLayout pattern="%d{yyyy-mm-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </File>
+
+        <File name="MyError" fileName="logs/error.log">
             <PatternLayout pattern="%d{yyyy-mm-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </File>
     </appenders>
 
     <loggers>
         <root level="debug">
-            <appender-ref ref="Console" level="info"/>
-            <appender-ref ref="MyFile" level="error"/>
+            <appender-ref ref="MyStatistics" level="info"/>
+            <appender-ref ref="Console" level="debug"/>
+            <appender-ref ref="MyError" level="error"/>
         </root>
     </loggers>
 </configuration>

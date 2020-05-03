@@ -18,8 +18,17 @@ public class MessageSender implements Runnable {
     private Session session;
     private MessageProducer producer;
     private final BlockingQueue<Message> buffer;
-    private final Plan plan;
     private ErrorHandler errorHandler;
+    private boolean completedSending = false;
+    private int countSentMessages = 0;
+
+    public boolean isCompletedSending() {
+        return completedSending;
+    }
+
+    public int getCountSentMessages() {
+        return countSentMessages;
+    }
 
     public void setCountMessages(int countMessages) {
         this.countMessages = countMessages;
@@ -37,13 +46,11 @@ public class MessageSender implements Runnable {
                          String queueName,
                          int deliveryMode,
                          int sessionMode,
-                         BlockingQueue<Message> buffer,
-                         Plan plan) {
+                         BlockingQueue<Message> buffer) {
         this.buffer = buffer;
         this.queueName = queueName;
         this.deliveryMode = deliveryMode;
         this.sessionMode = sessionMode;
-        this.plan = plan;
         this.brokerUrl = typeConnection + "://" + url;
     }
 
@@ -99,6 +106,7 @@ public class MessageSender implements Runnable {
         try {
             TextMessage message = session.createTextMessage(textMessage);
             producer.send(message);
+            countSentMessages++;
         } catch (Exception e) {
             throw new LoaderException("Ошибка отправки сообщения: \n" + textMessage, e);
         }
@@ -108,7 +116,7 @@ public class MessageSender implements Runnable {
     public void run() {
         try {
             int numberMessage = 1;
-            log.info("Начало отправки: " + System.currentTimeMillis());
+            log.debug("Начало отправки: " + System.currentTimeMillis());
             while (numberMessage <= countMessages) {
                 if (Thread.currentThread().isInterrupted()) {
                     log.error("Поток завершился извне.");
@@ -122,14 +130,15 @@ public class MessageSender implements Runnable {
                     Thread.currentThread().interrupt();
                     break;
                 }
-                log.info("Отправлено №" + numberMessage + " в " + System.currentTimeMillis() + ": " + result);
+                log.debug("Отправлено №" + numberMessage + " в " + System.currentTimeMillis() + ": " + result);
                 sendMessage(result.getData());
                 numberMessage++;
             }
-            log.info("Конец отправки: " + System.currentTimeMillis());
+            log.debug("Конец отправки: " + System.currentTimeMillis());
         } catch (LoaderException e) {
             errorHandler.closeGenerator(e);
         } finally {
+            completedSending = true;
             closeConnection();
         }
     }
