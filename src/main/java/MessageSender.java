@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 
 import javax.jms.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /*
  * Его задачи:
@@ -20,14 +21,14 @@ public class MessageSender implements Runnable {
     private final BlockingQueue<Message> buffer;
     private ErrorHandler errorHandler;
     private boolean completedSending = false;
-    private int countSentMessages = 0;
+    private AtomicInteger countSentMessages = new AtomicInteger(0);
 
     public boolean isCompletedSending() {
         return completedSending;
     }
 
     public int getCountSentMessages() {
-        return countSentMessages;
+        return countSentMessages.get();
     }
 
     public void setCountMessages(int countMessages) {
@@ -106,7 +107,7 @@ public class MessageSender implements Runnable {
         try {
             TextMessage message = session.createTextMessage(textMessage);
             producer.send(message);
-            countSentMessages++;
+            countSentMessages.incrementAndGet();
         } catch (Exception e) {
             throw new LoaderException("Ошибка отправки сообщения: \n" + textMessage, e);
         }
