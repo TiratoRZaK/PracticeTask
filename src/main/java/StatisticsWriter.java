@@ -7,7 +7,7 @@ public class StatisticsWriter extends Thread {
     private static final Logger logger = LogManager.getLogger(StatisticsWriter.class);
     private final AtomicInteger countSentMessages = new AtomicInteger(0);
     private final Plan plan;
-    private boolean completedSent = false;
+    private volatile boolean completedSent = false;
 
     public StatisticsWriter(Plan plan) {
         this.plan = plan;

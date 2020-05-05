@@ -4,6 +4,7 @@ import org.apache.logging.log4j.Logger;
 
 import javax.jms.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /*
  * Его задачи:
@@ -105,23 +106,26 @@ public class MessageSender implements Runnable {
             int numberMessage = 1;
             log.debug("Начало отправки: " + System.currentTimeMillis());
             Message result;
-            Thread.sleep(1000);
             while (!statisticsWriter.isCompletedSent()) {
                 if (Thread.currentThread().isInterrupted()) {
                     log.error("Поток завершился извне.");
                     break;
                 }
 
-                if ((result = buffer.poll()) != null) {
+                if ((result = buffer.poll(100, TimeUnit.MILLISECONDS)) != null) {
                     log.debug("Отправлено №" + numberMessage + " в " + System.currentTimeMillis() + ": " + result);
                     sendMessage(result.getData());
                     numberMessage++;
                 }
             }
             log.debug("Конец отправки: " + System.currentTimeMillis());
-        } catch (LoaderException | InterruptedException e) {
+        } catch (LoaderException e) {
             errorHandler.closeGenerator(e);
-        } finally {
+        } catch (InterruptedException ex){
+            errorHandler.closeGenerator(ex);
+            Thread.currentThread().interrupt();
+        }
+        finally {
             closeConnection();
         }
     }

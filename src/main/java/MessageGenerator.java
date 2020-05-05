@@ -96,7 +96,7 @@ public class MessageGenerator {
         List<String> values = files.get(fileName);
         String selectedRandomValue;
         if (usedValues.containsKey(fileName)) {
-            List<String> usedValues = new LinkedList<>(this.usedValues.get(fileName));
+            Set<String> usedValues = new HashSet<>(this.usedValues.get(fileName));
             List<String> uniqueValues = values.stream().filter(e -> !usedValues.contains(e)).collect(Collectors.toList());
 
             if (uniqueValues.isEmpty()) {

@@ -11,12 +11,12 @@ import java.util.concurrent.DelayQueue;
 
 public class Loader {
     private final Logger log = LogManager.getLogger(Loader.class);
-    private int COUNT_SENDERS;
+    private int countSenders;
     private ErrorHandler errorHandler;
-    private String TYPE_CONNECTION;
-    private String URL;
-    private final Map<String, List<String>> FILES = new HashMap<>();
-    private Plan PLAN;
+    private String typeConnection;
+    private String url;
+    private final Map<String, List<String>> files = new HashMap<>();
+    private Plan plan;
 
     public static void main(String[] args) {
         Loader loader = new Loader();
@@ -32,17 +32,17 @@ public class Loader {
             return;
         }
         BlockingQueue<Message> blockingQueue = new DelayQueue<>();
-        MessageProvider provider = new MessageProvider(blockingQueue, PLAN, FILES);
+        MessageProvider provider = new MessageProvider(blockingQueue, plan, files);
         Thread t1 = new Thread(provider);
 
-        StatisticsWriter statisticsWriter = new StatisticsWriter(PLAN);
+        StatisticsWriter statisticsWriter = new StatisticsWriter(plan);
 
         List<MessageSender> senders = new ArrayList<>();
         List<Thread> sendThreads = new ArrayList<>();
 
-        for (int i = 0; i < COUNT_SENDERS; i++) {
+        for (int i = 0; i < countSenders; i++) {
             MessageSender sender = new MessageSender(
-                    TYPE_CONNECTION, URL,
+                    typeConnection, url,
                     "TEST_QUEUE",
                     DeliveryMode.NON_PERSISTENT,
                     Session.AUTO_ACKNOWLEDGE,
@@ -82,7 +82,7 @@ public class Loader {
                     while ((line = br.readLine()) != null) {
                         lines.add(line);
                     }
-                    FILES.put(name, lines);
+                    this.files.put(name, lines);
                 } catch (IOException e) {
                     throw new LoaderException("Ошибка чтения файла: " + file.getPath(), e);
                 }
@@ -90,21 +90,21 @@ public class Loader {
         }
     }
 
-    private void parseProperties() throws LoaderException {
+    private void parseProperties() throws LoaderException   {
         Properties properties = new Properties();
 
         try (InputStream inputStream = new FileInputStream("configs/Application.properties")) {
             properties.load(inputStream);
-            TYPE_CONNECTION = properties.getProperty("typeConnection");
-            URL = properties.getProperty("URL");
+            typeConnection = properties.getProperty("typeConnection");
+            url = properties.getProperty("URL");
             int countSenders = Integer.parseInt(properties.getProperty("countSenders"));
             if (countSenders < 1) {
                 throw new LoaderException("Количество потоков отправителей не может быть меньшне единицы.");
             }
-            COUNT_SENDERS = countSenders;
+            this.countSenders = countSenders;
             String plan = properties.getProperty("plan");
 
-            PLAN = new Plan(plan);
+            this.plan = new Plan(plan);
         } catch (IOException | NumberFormatException e) {
             throw new LoaderException("Ошибка чтения файла свойств.", e);
         }
