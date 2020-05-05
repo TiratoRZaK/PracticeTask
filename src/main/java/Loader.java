@@ -6,7 +6,6 @@ import javax.jms.DeliveryMode;
 import javax.jms.Session;
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 
 public class Loader {
@@ -31,8 +30,8 @@ public class Loader {
             log.error(e);
             return;
         }
-        BlockingQueue<Message> blockingQueue = new DelayQueue<>();
-        MessageProvider provider = new MessageProvider(blockingQueue, plan, files);
+        DelayQueue<Message> delayQueue = new DelayQueue<>();
+        MessageProvider provider = new MessageProvider(delayQueue, plan, files);
         Thread t1 = new Thread(provider);
 
         StatisticsWriter statisticsWriter = new StatisticsWriter(plan);
@@ -40,25 +39,16 @@ public class Loader {
         List<MessageSender> senders = new ArrayList<>();
         List<Thread> sendThreads = new ArrayList<>();
 
-        for (int i = 0; i < countSenders; i++) {
-            MessageSender sender = new MessageSender(
-                    typeConnection, url,
-                    "TEST_QUEUE",
-                    DeliveryMode.NON_PERSISTENT,
-                    Session.AUTO_ACKNOWLEDGE,
-                    blockingQueue,
-                    statisticsWriter
-            );
-            try {
-                sender.setConnection();
-            } catch (LoaderException e) {
-                log.error("Ошибка подключения к MQ.", e);
-                break;
+        try {
+            for (int i = 0; i < countSenders; i++) {
+                MessageSender sender = connectionNewSender(delayQueue, statisticsWriter);
+                senders.add(sender);
+                sendThreads.add(new Thread(sender));
             }
-            senders.add(sender);
-            sendThreads.add(new Thread(sender));
+        } catch (LoaderException e) {
+            log.error("Ошибка подключения к MQ.", e);
         }
-
+        System.out.println("СОзданый отправители - " + senders.size());
         errorHandler = new ErrorHandler(t1, sendThreads);
         provider.setErrorHandler(errorHandler);
         t1.start();
@@ -90,7 +80,7 @@ public class Loader {
         }
     }
 
-    private void parseProperties() throws LoaderException   {
+    private void parseProperties() throws LoaderException {
         Properties properties = new Properties();
 
         try (InputStream inputStream = new FileInputStream("configs/Application.properties")) {
@@ -108,5 +98,18 @@ public class Loader {
         } catch (IOException | NumberFormatException e) {
             throw new LoaderException("Ошибка чтения файла свойств.", e);
         }
+    }
+
+    private MessageSender connectionNewSender(DelayQueue<Message> delayQueue, StatisticsWriter statisticsWriter) throws LoaderException {
+        MessageSender sender = new MessageSender(
+                typeConnection, url,
+                "TEST_QUEUE",
+                DeliveryMode.NON_PERSISTENT,
+                Session.AUTO_ACKNOWLEDGE,
+                delayQueue,
+                statisticsWriter
+        );
+        sender.setConnection();
+        return sender;
     }
 }

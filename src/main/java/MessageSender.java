@@ -121,11 +121,10 @@ public class MessageSender implements Runnable {
             log.debug("Конец отправки: " + System.currentTimeMillis());
         } catch (LoaderException e) {
             errorHandler.closeGenerator(e);
-        } catch (InterruptedException ex){
+        } catch (InterruptedException ex) {
             errorHandler.closeGenerator(ex);
             Thread.currentThread().interrupt();
-        }
-        finally {
+        } finally {
             closeConnection();
         }
     }
